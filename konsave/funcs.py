@@ -201,6 +201,35 @@ def save_profile(name, profile_list, force=False):
     log("Profile saved successfully!")
 
 
+def is_running_in_graphical_session():
+    """Check if the script is running in a graphical session (X11/Wayland).
+    
+    Returns:
+        bool: True if in a graphical session, False otherwise
+    """
+    # Check for display environment variables
+    display = os.environ.get("DISPLAY")
+    wayland_display = os.environ.get("WAYLAND_DISPLAY")
+    xdg_session_type = os.environ.get("XDG_SESSION_TYPE")
+    
+    # Check if plasmashell is running
+    import subprocess
+    try:
+        result = subprocess.run(
+            ["pgrep", "-x", "plasmashell"],
+            capture_output=True,
+            timeout=2
+        )
+        plasmashell_running = result.returncode == 0
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        plasmashell_running = False
+    
+    return bool(
+        (display or wayland_display or xdg_session_type in ["x11", "wayland"])
+        and plasmashell_running
+    )
+
+
 @exception_handler
 def clear_plasma_cache():
     """Clears Plasma theme and icon caches to ensure proper theme application in Plasma 6."""
@@ -233,6 +262,11 @@ def clear_plasma_cache():
 def restart_plasmashell():
     """Restarts plasmashell to apply theme changes immediately."""
     import subprocess
+    
+    # Check if we're in a graphical session
+    if not is_running_in_graphical_session():
+        log("skipping plasmashell restart (no graphical session detected)")
+        return
     
     log("restarting plasmashell...")
     try:
@@ -277,14 +311,23 @@ def apply_profile(profile_name, profile_list, profile_count):
 
     # Clear Plasma caches and restart plasmashell for Plasma 6
     clear_plasma_cache()
+    in_graphical_session = is_running_in_graphical_session()
     restart_plasmashell()
 
-    log(
-        "Profile applied successfully! Theme changes should be visible immediately."
-    )
-    log(
-        "Note: Some changes may require logging out and back in to take full effect."
-    )
+    if in_graphical_session:
+        log(
+            "Profile applied successfully! Theme changes should be visible immediately."
+        )
+        log(
+            "Note: Some changes may require logging out and back in to take full effect."
+        )
+    else:
+        log(
+            "Profile applied successfully!"
+        )
+        log(
+            "Note: Please log in to a graphical session to see the changes."
+        )
 
 
 @exception_handler
