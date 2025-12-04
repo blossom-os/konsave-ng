@@ -202,6 +202,55 @@ def save_profile(name, profile_list, force=False):
 
 
 @exception_handler
+def clear_plasma_cache():
+    """Clears Plasma theme and icon caches to ensure proper theme application in Plasma 6."""
+    import subprocess
+    
+    cache_dir = os.path.join(HOME, ".cache")
+    cache_patterns = [
+        "plasma_theme_*.kcache",
+        "icon-cache.kcache",
+        "plasma-svgelements_*",
+        "ksvg-elements"
+    ]
+    
+    log("clearing Plasma caches...")
+    for pattern in cache_patterns:
+        import glob
+        for cache_file in glob.glob(os.path.join(cache_dir, pattern)):
+            try:
+                if os.path.isfile(cache_file):
+                    os.remove(cache_file)
+                    log(f"removed cache: {os.path.basename(cache_file)}")
+                elif os.path.isdir(cache_file):
+                    shutil.rmtree(cache_file)
+                    log(f"removed cache directory: {os.path.basename(cache_file)}")
+            except Exception as e:
+                log(f"warning: could not remove {cache_file}: {e}")
+
+
+@exception_handler
+def restart_plasmashell():
+    """Restarts plasmashell to apply theme changes immediately."""
+    import subprocess
+    
+    log("restarting plasmashell...")
+    try:
+        # Kill plasmashell gracefully
+        subprocess.run(["killall", "plasmashell"], check=False, capture_output=True)
+        # Wait a moment
+        import time
+        time.sleep(1)
+        # Restart plasmashell in the background
+        subprocess.Popen(["plasmashell"], start_new_session=True, 
+                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        log("plasmashell restarted successfully")
+    except Exception as e:
+        log(f"warning: could not restart plasmashell: {e}")
+        log("you may need to restart plasmashell manually")
+
+
+@exception_handler
 def apply_profile(profile_name, profile_list, profile_count):
     """Applies profile of the given id.
 
@@ -226,8 +275,15 @@ def apply_profile(profile_name, profile_list, profile_count):
         location = os.path.join(profile_dir, name)
         copy(location, profile_config[name]["location"])
 
+    # Clear Plasma caches and restart plasmashell for Plasma 6
+    clear_plasma_cache()
+    restart_plasmashell()
+
     log(
-        "Profile applied successfully! Please log-out and log-in to see the changes completely!"
+        "Profile applied successfully! Theme changes should be visible immediately."
+    )
+    log(
+        "Note: Some changes may require logging out and back in to take full effect."
     )
 
 

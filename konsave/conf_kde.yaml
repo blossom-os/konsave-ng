@@ -95,6 +95,13 @@ save:
         entries:
             # Add/remove entries above if your autostart changes.
 
+    # Plasma workspace environment settings (Plasma 6)
+    plasma_workspace:
+        location: "$CONFIG_DIR/plasma-workspace"
+        entries:
+            - env
+            - shutdown
+
     # Here are a few examples of how you can add more stuff to back up.
     # Uncomment these lines if you want.
     # firefox:
@@ -122,6 +129,9 @@ export:
             - icons
             - wallpapers
             - yakuake
+            # Plasma 6: Ensure desktoptheme is properly exported
+            - plasma/desktoptheme
+            - plasma/look-and-feel
 
     home_folder:
         location: "$HOME/"
